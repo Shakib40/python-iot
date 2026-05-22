@@ -1,0 +1,191 @@
+
+<h2 class="sr-only">Live fight detection using webcam and pose estimation</h2>
+<style>
+  body{margin:0}
+  #wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 0}
+  #canvas-wrap{position:relative;width:100%;max-width:640px}
+  #output{width:100%;border-radius:var(--border-radius-lg);display:block;background:#000}
+  #overlay{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:var(--border-radius-lg);pointer-events:none}
+  #hud{width:100%;max-width:640px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;text-align:center}
+  .metric .label{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+  .metric .val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+  #score-bar-wrap{width:100%;max-width:640px}
+  #score-bar-bg{width:100%;height:12px;background:var(--color-background-secondary);border-radius:6px;overflow:hidden}
+  #score-bar{height:12px;width:0%;background:#639922;border-radius:6px;transition:width .2s,background .2s}
+  #status{font-size:13px;color:var(--color-text-secondary);text-align:center}
+  #alert-banner{display:none;background:#FCEBEB;border:1px solid #F09595;border-radius:var(--border-radius-md);padding:10px 16px;text-align:center;font-size:14px;font-weight:500;color:#A32D2D;width:100%;max-width:640px;box-sizing:border-box}
+  #btn{cursor:pointer;padding:8px 24px;border-radius:var(--border-radius-md);font-size:14px}
+</style>
+
+<div id="wrap">
+  <div id="status">Click "Start camera" to begin live detection</div>
+  <button id="btn" onclick="startCamera()">Start camera</button>
+  <div id="alert-banner" id="alert">FIGHT / AGGRESSION DETECTED</div>
+  <div id="canvas-wrap">
+    <video id="output" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
+  <div id="score-bar-wrap">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">
+      <span>Aggression score</span><span id="score-label">0 / 100</span>
+    </div>
+    <div id="score-bar-bg"><div id="score-bar"></div></div>
+  </div>
+  <div id="hud">
+    <div class="metric"><div class="label">Wrist speed</div><div class="val" id="m-vel">—</div></div>
+    <div class="metric"><div class="label">Arms raised</div><div class="val" id="m-arms">—</div></div>
+    <div class="metric"><div class="label">Alerts fired</div><div class="val" id="m-alerts">0</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+
+<script>
+const video = document.getElementById('output');
+const canvas = document.getElementById('overlay');
+const ctx = canvas.getContext('2d');
+const scoreBar = document.getElementById('score-bar');
+const scoreLabel = document.getElementById('score-label');
+const alertBanner = document.getElementById('alert-banner');
+const statusEl = document.getElementById('status');
+
+const LW=15,RW=16,LE=13,RE=14,LS=11,RS=12,LH=23,RH=24,LK=25,RK=26;
+
+const history = [];
+const HISTORY = 15;
+let alertCount = 0;
+let lastAlert = 0;
+const THRESHOLD = 60;
+const COOLDOWN = 5000;
+let pose, camera;
+
+function kpXY(lm, idx, w, h){ return lm[idx] ? [lm[idx].x*w, lm[idx].y*h] : null; }
+
+function wristVelocity(w, h){
+  if(history.length < 2) return 0;
+  let speeds=[];
+  for(let i=1;i<history.length;i++){
+    for(const idx of [LW,RW]){
+      const p1=history[i-1][idx], p2=history[i][idx];
+      if(p1&&p2){
+        const dx=p2[0]-p1[0], dy=p2[1]-p1[1];
+        speeds.push(Math.sqrt(dx*dx+dy*dy));
+      }
+    }
+  }
+  return speeds.length ? speeds.reduce((a,b)=>a+b)/speeds.length : 0;
+}
+
+function armsRaised(kp){
+  for(const [wrist,shoulder] of [[LW,LS],[RW,RS]]){
+    if(kp[wrist]&&kp[shoulder]&&kp[wrist][1]<kp[shoulder][1]) return true;
+  }
+  return false;
+}
+
+function computeScore(kp, w, h){
+  const MAX_VEL=18;
+  const vel = wristVelocity(w,h);
+  const velScore = Math.min(vel/MAX_VEL,1)*50;
+  const raisedScore = armsRaised(kp) ? 35 : 0;
+  const erraticScore = history.length>=5 ? Math.min(vel/MAX_VEL,1)*15 : 0;
+  return Math.min(velScore+raisedScore+erraticScore, 100);
+}
+
+function drawSkeleton(lm, w, h){
+  const connections=[
+    [LS,RS],[LS,LE],[LE,LW],[RS,RE],[RE,RW],
+    [LS,LH],[RS,RH],[LH,RH],[LH,LK],[RH,RK]
+  ];
+  ctx.lineWidth=3;
+  ctx.strokeStyle='rgba(99,153,34,0.85)';
+  for(const [a,b] of connections){
+    const pa=kpXY(lm,a,w,h), pb=kpXY(lm,b,w,h);
+    if(pa&&pb){ ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); }
+  }
+  const joints=[LS,RS,LE,RE,LW,RW,LH,RH,LK,RK];
+  for(const idx of joints){
+    const p=kpXY(lm,idx,w,h);
+    if(p){ ctx.beginPath(); ctx.arc(p[0],p[1],5,0,2*Math.PI); ctx.fillStyle='#1D9E75'; ctx.fill(); }
+  }
+  // highlight wrists
+  for(const idx of [LW,RW]){
+    const p=kpXY(lm,idx,w,h);
+    if(p){ ctx.beginPath(); ctx.arc(p[0],p[1],8,0,2*Math.PI); ctx.strokeStyle='#E24B4A'; ctx.lineWidth=2.5; ctx.stroke(); }
+  }
+}
+
+function onResults(results){
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  if(!results.poseLandmarks){ statusEl.textContent='No person detected'; return; }
+  statusEl.textContent='Person detected — tracking live';
+
+  const lm=results.poseLandmarks;
+  const kp={};
+  for(const idx of [LW,RW,LE,RE,LS,RS,LH,RH,LK,RK]){
+    kp[idx]=kpXY(lm,idx,w,h);
+  }
+  history.push(kp);
+  if(history.length>HISTORY) history.shift();
+
+  drawSkeleton(lm,w,h);
+
+  const score=computeScore(kp,w,h);
+  const vel=wristVelocity(w,h);
+  const raised=armsRaised(kp);
+
+  scoreBar.style.width=score.toFixed(0)+'%';
+  scoreBar.style.background=score>THRESHOLD?'#E24B4A':score>35?'#BA7517':'#639922';
+  scoreLabel.textContent=score.toFixed(0)+' / 100';
+
+  document.getElementById('m-vel').textContent=vel.toFixed(1)+'px';
+  document.getElementById('m-arms').textContent=raised?'YES':'no';
+
+  const now=Date.now();
+  if(score>THRESHOLD && now-lastAlert>COOLDOWN){
+    alertCount++;
+    lastAlert=now;
+    document.getElementById('m-alerts').textContent=alertCount;
+    alertBanner.style.display='block';
+    setTimeout(()=>alertBanner.style.display='none',3000);
+  }
+
+  // score overlay on canvas
+  ctx.font='bold 16px sans-serif';
+  ctx.fillStyle=score>THRESHOLD?'#E24B4A':'#1D9E75';
+  ctx.fillText('Score: '+score.toFixed(0), 10, 24);
+}
+
+async function startCamera(){
+  document.getElementById('btn').style.display='none';
+  statusEl.textContent='Requesting camera access...';
+
+  pose = new Pose({locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
+  pose.setOptions({modelComplexity:1, smoothLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5});
+  pose.onResults(onResults);
+
+  const stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false});
+  video.srcObject=stream;
+  await video.play();
+
+  canvas.width=video.videoWidth||640;
+  canvas.height=video.videoHeight||480;
+
+  camera = new Camera(video,{
+    onFrame: async()=>{ await pose.send({image:video}); },
+    width:640, height:480
+  });
+  camera.start();
+  statusEl.textContent='Loading pose model...';
+}
+
+video.addEventListener('loadedmetadata',()=>{
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+});
+</script>

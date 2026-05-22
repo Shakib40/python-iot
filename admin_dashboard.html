@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Smart IoT System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex: 1;
+            max-width: 400px;
+        }
+        
+        .search-box input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .person-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .person-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .person-info {
+            flex: 1;
+        }
+        
+        .person-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        
+        .person-email {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            margin-bottom: 25px;
+        }
+        
+        .modal-header h2 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .filter-dropdown {
+            position: relative;
+        }
+        
+        .filter-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 10px;
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+        }
+        
+        .filter-menu.active {
+            display: block;
+        }
+        
+        .filter-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+        
+        .filter-option:hover {
+            background: #f0f4ff;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                max-width: none;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>Admin Dashboard</h1>
+                <p>Smart IoT Face Recognition System Management</p>
+            </div>
+            <div class="user-info">
+                <span>Admin User</span>
+                <img src="https://picsum.photos/seed/admin/100/100" alt="Admin" class="user-avatar">
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
+            <button class="nav-tab" onclick="showTab('employees')">Employees</button>
+            <button class="nav-tab" onclick="showTab('students')">Students</button>
+            <button class="nav-tab" onclick="showTab('devices')">IoT Devices</button>
+            <button class="nav-tab" onclick="showTab('reports')">Reports</button>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">#128100;</div>
+                    <div class="stat-number">245</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">#128102;</div>
+                    <div class="stat-number">1,847</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">#128187;</div>
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">Active IoT Devices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">#128197;</div>
+                    <div class="stat-number">98.5%</div>
+                    <div class="stat-label">Recognition Accuracy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">#128337;</div>
+                    <div class="stat-number">15,234</div>
+                    <div class="stat-label">Today's Detections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">#128172;</div>
+                    <div class="stat-number">99.2%</div>
+                    <div class="stat-label">System Uptime</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Employees Tab -->
+        <div id="employees" class="tab-content">
+            <div class="action-bar">
+                <div class="search-box">
+                    <span>#128269;</span>
+                    <input type="text" placeholder="Search employees..." id="employeeSearch">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="openEmployeeModal()">Add Employee</button>
+                    <button class="btn btn-success" onclick="exportData('employees')">Export</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Join Date</th>
+                            <th>Health Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTable">
+                        <!-- Employee rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Students Tab -->
+        <div id="students" class="tab-content">
+            <div class="action-bar">
+                <div class="search-box">
+                    <span>#128269;</span>
+                    <input type="text" placeholder="Search students..." id="studentSearch">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="openStudentModal()">Add Student</button>
+                    <button class="btn btn-success" onclick="exportData('students')">Export</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Department</th>
+                            <th>GPA</th>
+                            <th>Attendance</th>
+                            <th>Pending Fees</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTable">
+                        <!-- Student rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- IoT Devices Tab -->
+        <div id="devices" class="tab-content">
+            <div class="action-bar">
+                <div class="search-box">
+                    <span>#128269;</span>
+                    <input type="text" placeholder="Search devices..." id="deviceSearch">
+                </div>
+                <button class="btn btn-primary" onclick="openDeviceModal()">Add Device</button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Device Name</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Last Seen</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTable">
+                        <!-- Device rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <div class="action-bar">
+                <div class="search-box">
+                    <span>#128269;</span>
+                    <input type="text" placeholder="Search reports..." id="reportSearch">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+                    <button class="btn btn-success" onclick="exportData('reports')">Export All</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Report Type</th>
+                            <th>Date Range</th>
+                            <th>Generated</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTable">
+                        <!-- Report rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Employee Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add/Edit Employee</h2>
+                <p>Enter employee details and upload face photo</p>
+            </div>
+            <form id="employeeForm">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="empName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="empEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="empPhone">
+                </div>
+                <div class="form-group">
+                    <label>Department *</label>
+                    <select id="empDepartment" required>
+                        <option value="">Select Department</option>
+                        <option value="IT">IT</option>
+                        <option value="HR">HR</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Operations">Operations</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Role *</label>
+                    <input type="text" id="empRole" required>
+                </div>
+                <div class="form-group">
+                    <label>Face Photo *</label>
+                    <div class="upload-area" onclick="document.getElementById('empPhoto').click()">
+                        <div style="font-size: 48px; margin-bottom: 10px;">#128247;</div>
+                        <p>Click to upload or drag and drop</p>
+                        <p style="font-size: 12px; color: #666;">PNG, JPG up to 10MB</p>
+                    </div>
+                    <input type="file" id="empPhoto" accept="image/*" style="display: none;">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal('employeeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Student Modal -->
+    <div id="studentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add/Edit Student</h2>
+                <p>Enter student details and upload face photo</p>
+            </div>
+            <form id="studentForm">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="stuName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="stuEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Student ID *</label>
+                    <input type="text" id="stuId" required>
+                </div>
+                <div class="form-group">
+                    <label>Department *</label>
+                    <select id="stuDepartment" required>
+                        <option value="">Select Department</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Science">Science</option>
+                        <option value="Arts">Arts</option>
+                        <option value="Business">Business</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Face Photo *</label>
+                    <div class="upload-area" onclick="document.getElementById('stuPhoto').click()">
+                        <div style="font-size: 48px; margin-bottom: 10px;">#128247;</div>
+                        <p>Click to upload or drag and drop</p>
+                        <p style="font-size: 12px; color: #666;">PNG, JPG up to 10MB</p>
+                    </div>
+                    <input type="file" id="stuPhoto" accept="image/*" style="display: none;">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal('studentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Mock Data
+        const mockData = {
+            employees: [
+                { id: 'EMP001', name: 'John Smith', email: 'john@company.com', phone: '+1234567890', department: 'IT', role: 'Software Engineer', status: 'active', joinDate: '2022-01-15', health: 'Good' },
+                { id: 'EMP002', name: 'Sarah Johnson', email: 'sarah@company.com', phone: '+1234567891', department: 'HR', role: 'HR Manager', status: 'active', joinDate: '2021-03-20', health: 'Good' },
+                { id: 'EMP003', name: 'Mike Wilson', email: 'mike@company.com', phone: '+1234567892', department: 'Finance', role: 'Accountant', status: 'inactive', joinDate: '2020-06-10', health: 'Attention' }
+            ],
+            students: [
+                { id: 'STU001', name: 'Michael Chen', email: 'michael@university.edu', department: 'Engineering', gpa: 3.8, attendance: 92, fees: 0 },
+                { id: 'STU002', name: 'Emily Davis', email: 'emily@university.edu', department: 'Science', gpa: 3.6, attendance: 88, fees: 250 },
+                { id: 'STU003', name: 'James Brown', email: 'james@university.edu', department: 'Arts', gpa: 3.9, attendance: 95, fees: 0 }
+            ],
+            devices: [
+                { id: 'DEV001', name: 'Main Entrance Camera', location: 'Building A - Entrance', status: 'online', lastSeen: '2 mins ago' },
+                { id: 'DEV002', name: 'Lift Camera', location: 'Elevator - Floor 1', status: 'online', lastSeen: '5 mins ago' },
+                { id: 'DEV003', name: 'Cafeteria Camera', location: 'Cafeteria', status: 'offline', lastSeen: '2 hours ago' }
+            ],
+            reports: [
+                { type: 'Attendance Report', dateRange: '2024-01-01 to 2024-01-31', generated: '2024-02-01', status: 'Completed' },
+                { type: 'Health Summary', dateRange: '2024-01-01 to 2024-01-31', generated: '2024-02-01', status: 'Completed' },
+                { type: 'Usage Analytics', dateRange: '2024-01-01 to 2024-01-31', generated: '2024-02-01', status: 'Processing' }
+            ]
+        };
+        
+        // Tab Management
+        function showTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // Load data for the tab
+            loadTabData(tabName);
+        }
+        
+        function loadTabData(tabName) {
+            switch(tabName) {
+                case 'employees':
+                    loadEmployees();
+                    break;
+                case 'students':
+                    loadStudents();
+                    break;
+                case 'devices':
+                    loadDevices();
+                    break;
+                case 'reports':
+                    loadReports();
+                    break;
+            }
+        }
+        
+        // Load Functions
+        function loadEmployees() {
+            const tbody = document.getElementById('employeeTable');
+            tbody.innerHTML = mockData.employees.map(emp => `
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            <img src="https://picsum.photos/seed/${emp.id}/100/100" alt="${emp.name}" class="person-avatar">
+                            <div class="person-info">
+                                <div class="person-name">${emp.name}</div>
+                                <div class="person-email">${emp.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${emp.department}</td>
+                    <td><span class="status-badge status-${emp.status}">${emp.status}</span></td>
+                    <td>${emp.joinDate}</td>
+                    <td>${emp.health}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-primary" onclick="editEmployee('${emp.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${emp.id}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function loadStudents() {
+            const tbody = document.getElementById('studentTable');
+            tbody.innerHTML = mockData.students.map(stu => `
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            <img src="https://picsum.photos/seed/${stu.id}/100/100" alt="${stu.name}" class="person-avatar">
+                            <div class="person-info">
+                                <div class="person-name">${stu.name}</div>
+                                <div class="person-email">${stu.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${stu.department}</td>
+                    <td>${stu.gpa}</td>
+                    <td>${stu.attendance}%</td>
+                    <td>$${stu.fees}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-primary" onclick="editStudent('${stu.id}')">Edit</button>
+                            <button class="btn btn-sm btn-warning" onclick="viewDetails('${stu.id}')">Details</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteStudent('${stu.id}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function loadDevices() {
+            const tbody = document.getElementById('deviceTable');
+            tbody.innerHTML = mockData.devices.map(dev => `
+                <tr>
+                    <td>${dev.name}</td>
+                    <td>${dev.location}</td>
+                    <td><span class="status-badge status-${dev.status}">${dev.status}</span></td>
+                    <td>${dev.lastSeen}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-primary" onclick="configureDevice('${dev.id}')">Configure</button>
+                            <button class="btn btn-sm btn-warning" onclick="restartDevice('${dev.id}')">Restart</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function loadReports() {
+            const tbody = document.getElementById('reportTable');
+            tbody.innerHTML = mockData.reports.map(rep => `
+                <tr>
+                    <td>${rep.type}</td>
+                    <td>${rep.dateRange}</td>
+                    <td>${rep.generated}</td>
+                    <td><span class="status-badge status-${rep.status.toLowerCase()}">${rep.status}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-primary" onclick="downloadReport('${rep.type}')">Download</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteReport('${rep.type}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Modal Functions
+        function openEmployeeModal() {
+            document.getElementById('employeeModal').classList.add('active');
+        }
+        
+        function openStudentModal() {
+            document.getElementById('studentModal').classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        // Action Functions
+        function editEmployee(id) {
+            console.log('Edit employee:', id);
+            openEmployeeModal();
+        }
+        
+        function deleteEmployee(id) {
+            if (confirm('Are you sure you want to delete this employee?')) {
+                console.log('Delete employee:', id);
+            }
+        }
+        
+        function editStudent(id) {
+            console.log('Edit student:', id);
+            openStudentModal();
+        }
+        
+        function deleteStudent(id) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                console.log('Delete student:', id);
+            }
+        }
+        
+        function viewDetails(id) {
+            console.log('View details:', id);
+        }
+        
+        function configureDevice(id) {
+            console.log('Configure device:', id);
+        }
+        
+        function restartDevice(id) {
+            if (confirm('Are you sure you want to restart this device?')) {
+                console.log('Restart device:', id);
+            }
+        }
+        
+        function downloadReport(type) {
+            console.log('Download report:', type);
+        }
+        
+        function deleteReport(type) {
+            if (confirm('Are you sure you want to delete this report?')) {
+                console.log('Delete report:', type);
+            }
+        }
+        
+        function generateReport() {
+            console.log('Generate new report');
+        }
+        
+        function exportData(type) {
+            console.log('Export data:', type);
+        }
+        
+        // Form Submissions
+        document.getElementById('employeeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Save employee');
+            closeModal('employeeModal');
+        });
+        
+        document.getElementById('studentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Save student');
+            closeModal('studentModal');
+        });
+        
+        // Search Functionality
+        document.getElementById('employeeSearch').addEventListener('input', function(e) {
+            console.log('Search employees:', e.target.value);
+        });
+        
+        document.getElementById('studentSearch').addEventListener('input', function(e) {
+            console.log('Search students:', e.target.value);
+        });
+        
+        document.getElementById('deviceSearch').addEventListener('input', function(e) {
+            console.log('Search devices:', e.target.value);
+        });
+        
+        document.getElementById('reportSearch').addEventListener('input', function(e) {
+            console.log('Search reports:', e.target.value);
+        });
+        
+        // Initialize
+        loadEmployees();
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>People Counter with Face Detection</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .video-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .video-container {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #video {
+            width: 100%;
+            display: block;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .controls {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .table-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .table-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .clear-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .clear-btn:hover {
+            background: #c82333;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .face-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+        }
+        
+        .time {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .direction {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .direction.enter {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .direction.exit {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 People Counter with Face Detection</h1>
+            <p>Real-time people counting and face capture system</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total People</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="currentCount">0</div>
+                <div class="stat-label">Currently in Frame</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="enterCount">0</div>
+                <div class="stat-label">Entered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="exitCount">0</div>
+                <div class="stat-label">Exited</div>
+            </div>
+        </div>
+        
+        <div class="video-section">
+            <div class="video-container">
+                <div class="status" id="status">Click "Start Camera" to begin counting</div>
+                <div class="video-wrapper">
+                    <video id="video" autoplay muted playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                <div class="controls">
+                    <button class="btn" id="startBtn" onclick="startCamera()">Start Camera</button>
+                    <button class="btn" id="stopBtn" onclick="stopCamera()" disabled>Stop Camera</button>
+                    <button class="btn" id="testBtn" onclick="testDetection()" style="background: #28a745;">Test Detection</button>
+                </div>
+                <div class="controls" style="margin-top: 10px;">
+                    <button class="btn" id="connectBtn" onclick="connectIoT()" style="background: #6f42c1;">Connect IoT</button>
+                    <button class="btn" id="sendBtn" onclick="sendCommand()" disabled style="background: #fd7e14;">Send Command</button>
+                    <input type="text" id="iotUrl" placeholder="IoT Device URL (e.g., http://192.168.1.100)" style="padding: 8px; margin-right: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-section">
+            <div class="table-header">
+                <h2>📊 Detection History</h2>
+                <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+            </div>
+            <div id="tableContainer">
+                <div class="empty-state">
+                    <p>No detections yet. Start the camera to begin counting people.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        let faceDetection, camera;
+        let detectionHistory = [];
+        let currentPeople = new Set();
+        let totalPeopleCount = 0;
+        let enterCount = 0;
+        let exitCount = 0;
+        let lastFramePeople = new Set();
+        
+        // Track unique people by their approximate position
+        let personIdCounter = 0;
+        let trackedPeople = new Map();
+        
+        // IoT Device variables
+        let iotDeviceUrl = '';
+        let iotConnected = false;
+        let commandQueue = [];
+        
+        function generatePersonId(face) {
+            // Simple ID generation based on position and size
+            const centerX = face.relativeBoundingBox?.xCenter || face.xCenter || 0.5;
+            const centerY = face.relativeBoundingBox?.yCenter || face.yCenter || 0.5;
+            const width = face.relativeBoundingBox?.width || face.width || 0.1;
+            const height = face.relativeBoundingBox?.height || face.height || 0.1;
+            const size = width * height;
+            return `${Math.round(centerX * 100)}_${Math.round(centerY * 100)}_${Math.round(size * 10)}`;
+        }
+        
+        function updateStats() {
+            document.getElementById('totalCount').textContent = totalPeopleCount;
+            document.getElementById('currentCount').textContent = currentPeople.size;
+            document.getElementById('enterCount').textContent = enterCount;
+            document.getElementById('exitCount').textContent = exitCount;
+        }
+        
+        function updateTable() {
+            const container = document.getElementById('tableContainer');
+            
+            if (detectionHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No detections yet. Start the camera to begin counting people.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Face</th>
+                            <th>ID</th>
+                            <th>Time</th>
+                            <th>Direction</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${detectionHistory.slice().reverse().map(record => `
+                            <tr>
+                                <td><img src="${record.faceImage}" class="face-img" alt="Face"></td>
+                                <td>#${record.personId}</td>
+                                <td class="time">${record.time}</td>
+                                <td><span class="direction ${record.direction}">${record.direction.toUpperCase()}</span></td>
+                                <td>${(record.confidence * 100).toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        function clearHistory() {
+            detectionHistory = [];
+            totalPeopleCount = 0;
+            enterCount = 0;
+            exitCount = 0;
+            trackedPeople.clear();
+            personIdCounter = 0;
+            updateStats();
+            updateTable();
+        }
+        
+        function extractFaceImage(face, imageWidth, imageHeight) {
+            // Create a temporary canvas to extract the face region
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            const width = face.relativeBoundingBox?.width || face.width || 0.1;
+            const height = face.relativeBoundingBox?.height || face.height || 0.1;
+            const centerX = face.relativeBoundingBox?.xCenter || face.xCenter || 0.5;
+            const centerY = face.relativeBoundingBox?.yCenter || face.yCenter || 0.5;
+            
+            const faceWidth = width * imageWidth;
+            const faceHeight = height * imageHeight;
+            const faceX = centerX * imageWidth - faceWidth / 2;
+            const faceY = centerY * imageHeight - faceHeight / 2;
+            
+            tempCanvas.width = Math.max(60, faceWidth);
+            tempCanvas.height = Math.max(60, faceHeight);
+            
+            // Draw the face region from the video
+            tempCtx.drawImage(video, faceX, faceY, faceWidth, faceHeight, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            return tempCanvas.toDataURL('image/jpeg', 0.8);
+        }
+        
+        function onResults(results) {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, w, h);
+            
+            // Set canvas size to match video
+            if (video.videoWidth && video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+            
+            const currentFramePeopleSet = new Set();
+            const detectedFaces = results.detections || [];
+            
+            // Debug logging
+            console.log('Face detection results:', results);
+            console.log('Detected faces count:', detectedFaces.length);
+            
+            // Process detected faces
+            detectedFaces.forEach((detection, index) => {
+                console.log(`Face ${index}:`, detection);
+                const face = detection.locationData?.relativeBoundingBox || detection.locationData;
+                if (!face) {
+                    console.log('No face data for detection', index);
+                    return;
+                }
+                
+                const personId = generatePersonId(face);
+                currentFramePeopleSet.add(personId);
+                
+                const width = face.width || 0.1;
+                const height = face.height || 0.1;
+                const centerX = face.xCenter || 0.5;
+                const centerY = face.yCenter || 0.5;
+                
+                // Draw face bounding box
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(
+                    centerX * w - width * w / 2,
+                    centerY * h - height * h / 2,
+                    width * w,
+                    height * h
+                );
+                
+                // Draw person ID
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(`Person ${personId}`, centerX * w - width * w / 2, centerY * h - height * h / 2 - 10);
+                
+                // Track new people
+                if (!currentPeople.has(personId)) {
+                    currentPeople.add(personId);
+                    
+                    if (!trackedPeople.has(personId)) {
+                        trackedPeople.set(personId, {
+                            id: personIdCounter++,
+                            firstSeen: new Date(),
+                            lastSeen: new Date(),
+                            faceImage: extractFaceImage(face, w, h)
+                        });
+                        totalPeopleCount++;
+                        enterCount++;
+                        
+                        // Add to history
+                        detectionHistory.push({
+                            personId: trackedPeople.get(personId).id,
+                            faceImage: trackedPeople.get(personId).faceImage,
+                            time: new Date().toLocaleTimeString(),
+                            direction: 'enter',
+                            confidence: detection.score[0]
+                        });
+                        
+                        // Send IoT command on person entry
+                        if (iotConnected) {
+                            sendIoTCommand('person_entered', {
+                                personId: trackedPeople.get(personId).id,
+                                timestamp: new Date().toISOString(),
+                                totalCount: totalPeopleCount
+                            });
+                        }
+                    }
+                } else {
+                    // Update last seen time
+                    if (trackedPeople.has(personId)) {
+                        trackedPeople.get(personId).lastSeen = new Date();
+                    }
+                }
+            });
+            
+            // Check for people who left
+            lastFramePeople.forEach(personId => {
+                if (!currentFramePeopleSet.has(personId) && currentPeople.has(personId)) {
+                    currentPeople.delete(personId);
+                    exitCount++;
+                    
+                    if (trackedPeople.has(personId)) {
+                        // Add to history
+                        detectionHistory.push({
+                            personId: trackedPeople.get(personId).id,
+                            faceImage: trackedPeople.get(personId).faceImage,
+                            time: new Date().toLocaleTimeString(),
+                            direction: 'exit',
+                            confidence: 0.9 // Default confidence for exit
+                        });
+                        
+                        // Send IoT command on person exit
+                        if (iotConnected) {
+                            sendIoTCommand('person_exited', {
+                                personId: trackedPeople.get(personId).id,
+                                timestamp: new Date().toISOString(),
+                                currentCount: currentPeople.size
+                            });
+                        }
+                    }
+                }
+            });
+            
+            lastFramePeople = currentFramePeopleSet;
+            
+            // Update status
+            if (detectedFaces.length > 0) {
+                statusEl.textContent = `Detecting ${detectedFaces.length} face(s)`;
+            } else {
+                statusEl.textContent = 'No faces detected';
+            }
+            
+            updateStats();
+            updateTable();
+        }
+        
+        async function startCamera() {
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusEl.textContent = 'Requesting camera access...';
+            
+            try {
+                faceDetection = new FaceDetection({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+                });
+                
+                faceDetection.setOptions({
+                    model: 'short',
+                    minDetectionConfidence: 0.3  // Lowered for better detection
+                });
+                
+                faceDetection.onResults(onResults);
+                
+                console.log('Face detection initialized');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 },
+                    audio: false
+                });
+                
+                video.srcObject = stream;
+                await video.play();
+                
+                camera = new Camera(video, {
+                    onFrame: async () => {
+                        await faceDetection.send({ image: video });
+                    },
+                    width: 640,
+                    height: 480
+                });
+                
+                camera.start();
+                statusEl.textContent = 'Camera started - Detecting faces...';
+                
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                statusEl.textContent = 'Error: Could not access camera';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        function testDetection() {
+            if (!faceDetection) {
+                statusEl.textContent = 'Please start camera first';
+                return;
+            }
+            
+            // Add a mock detection for testing
+            const mockDetection = {
+                detections: [{
+                    locationData: {
+                        relativeBoundingBox: {
+                            xCenter: 0.5,
+                            yCenter: 0.4,
+                            width: 0.2,
+                            height: 0.25
+                        }
+                    },
+                    score: [0.95]
+                }]
+            };
+            
+            console.log('Testing with mock detection:', mockDetection);
+            onResults(mockDetection);
+            statusEl.textContent = 'Test detection added';
+        }
+        
+        // IoT Device Functions
+        async function connectIoT() {
+            const urlInput = document.getElementById('iotUrl');
+            const connectBtn = document.getElementById('connectBtn');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            if (!urlInput.value.trim()) {
+                statusEl.textContent = 'Please enter IoT device URL';
+                return;
+            }
+            
+            iotDeviceUrl = urlInput.value.trim();
+            
+            try {
+                // Test connection with a simple ping
+                const response = await fetch(`${iotDeviceUrl}/ping`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    timeout: 5000
+                });
+                
+                iotConnected = true;
+                connectBtn.textContent = 'Connected';
+                connectBtn.style.background = '#28a745';
+                sendBtn.disabled = false;
+                statusEl.textContent = `Connected to IoT device at ${iotDeviceUrl}`;
+                
+                // Send initial status
+                await sendIoTCommand('system_status', {
+                    status: 'online',
+                    totalCount: totalPeopleCount,
+                    currentCount: currentPeople.size
+                });
+                
+            } catch (error) {
+                console.error('IoT connection failed:', error);
+                statusEl.textContent = `Failed to connect to ${iotDeviceUrl}. Check CORS and device availability.`;
+                iotConnected = false;
+                connectBtn.textContent = 'Connect IoT';
+                connectBtn.style.background = '#6f42c1';
+                sendBtn.disabled = true;
+            }
+        }
+        
+        async function sendIoTCommand(command, data = {}) {
+            if (!iotConnected || !iotDeviceUrl) {
+                console.log('IoT not connected, queuing command:', command);
+                commandQueue.push({ command, data, timestamp: new Date() });
+                return;
+            }
+            
+            try {
+                const payload = {
+                    command: command,
+                    data: data,
+                    timestamp: new Date().toISOString(),
+                    source: 'people_counter'
+                };
+                
+                console.log('Sending IoT command:', payload);
+                
+                const response = await fetch(`${iotDeviceUrl}/api/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors',
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('IoT command response:', result);
+                
+            } catch (error) {
+                console.error('Failed to send IoT command:', error);
+                statusEl.textContent = `IoT command failed: ${error.message}`;
+            }
+        }
+        
+        async function sendCommand() {
+            const commands = [
+                'turn_on_light',
+                'turn_off_light',
+                'activate_alarm',
+                'deactivate_alarm',
+                'lock_door',
+                'unlock_door',
+                'send_notification',
+                'trigger_recording'
+            ];
+            
+            const command = prompt(`Available commands:\n${commands.join(', ')}\n\nEnter command:`);
+            
+            if (command && commands.includes(command)) {
+                await sendIoTCommand(command, {
+                    triggeredBy: 'manual',
+                    totalCount: totalPeopleCount,
+                    currentCount: currentPeople.size
+                });
+                statusEl.textContent = `Sent command: ${command}`;
+            } else if (command) {
+                statusEl.textContent = `Unknown command: ${command}`;
+            }
+        }
+        
+        function stopCamera() {
+            if (camera) {
+                camera.stop();
+            }
+            
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusEl.textContent = 'Camera stopped';
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Handle video metadata
+        video.addEventListener('loadedmetadata', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        });
+    </script>
+</body>
+</html>
